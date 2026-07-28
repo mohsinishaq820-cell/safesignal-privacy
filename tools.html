@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Privacy Tools — SafeSignal</title>
+<meta name="description" content="Free tools to check your password strength and privacy score — instantly, in your browser. Nothing is sent or stored anywhere.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy-deep:#0F1B2D;--navy-mid:#16283F;--navy-line:#28405C;--brass:#C89B3C;--brass-soft:#E4C77A;--paper:#F2EDE3;--paper-dim:#B9C2CE;--rust:#B4552F;--green:#5C9C6C;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--navy-deep);color:var(--paper);font-family:'Public Sans',sans-serif;line-height:1.6;}
+  h1,h2{font-family:'Fraunces',serif;font-weight:600;}
+  a{color:var(--brass-soft);}
+  .wrap{max-width:720px;margin:0 auto;padding:0 24px;}
+  nav{padding:26px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--navy-line);}
+  .brand{font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;text-decoration:none;color:var(--paper);}
+  main{padding:50px 0 90px;}
+  h1{font-size:2.1rem;margin-bottom:10px;}
+  .lead{color:var(--paper-dim);margin-bottom:40px;max-width:520px;}
+  .tool-box{background:var(--navy-mid);border:1px solid var(--navy-line);border-radius:12px;padding:30px;margin-bottom:36px;}
+  .tool-box h2{font-size:1.3rem;margin-bottom:8px;}
+  .tool-box .sub{color:var(--paper-dim);font-size:0.9rem;margin-bottom:20px;}
+  input[type=password],input[type=text]{width:100%;background:var(--navy-deep);border:1px solid var(--navy-line);color:var(--paper);padding:12px 14px;border-radius:6px;font-size:1rem;font-family:monospace;}
+  input:focus{outline:none;border-color:var(--brass);}
+  .meter{height:8px;background:var(--navy-deep);border-radius:4px;margin-top:14px;overflow:hidden;}
+  .meter-fill{height:100%;width:0%;background:var(--rust);border-radius:4px;transition:width .3s,background .3s;}
+  .verdict{margin-top:12px;font-size:0.95rem;font-weight:600;}
+  .tips{margin-top:14px;font-size:0.85rem;color:var(--paper-dim);}
+  .quiz-q{margin-bottom:18px;}
+  .quiz-q p{margin-bottom:8px;font-size:0.95rem;}
+  .quiz-options{display:flex;gap:10px;flex-wrap:wrap;}
+  .quiz-btn{background:var(--navy-deep);border:1px solid var(--navy-line);color:var(--paper-dim);padding:8px 16px;border-radius:20px;font-size:0.85rem;cursor:pointer;transition:all .2s;}
+  .quiz-btn:hover{border-color:var(--brass);}
+  .quiz-btn.selected{background:var(--brass);color:var(--navy-deep);border-color:var(--brass);font-weight:600;}
+  .score-result{margin-top:24px;padding:20px;background:var(--navy-deep);border-radius:8px;display:none;}
+  .score-result.show{display:block;}
+  .score-num{font-family:'Fraunces',serif;font-size:2.2rem;color:var(--brass-soft);}
+  .btn-primary{background:var(--brass);color:var(--navy-deep);padding:12px 22px;border:none;border-radius:6px;font-weight:600;font-size:0.9rem;cursor:pointer;margin-top:8px;}
+  .privacy-note{font-size:0.8rem;color:var(--paper-dim);margin-top:16px;border-top:1px solid var(--navy-line);padding-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><a href="index.html" class="brand">SafeSignal</a><a href="index.html">← Home</a></nav>
+  <main>
+    <h1>Free Privacy Tools</h1>
+    <p class="lead">Two quick tools to check where you actually stand. Everything runs in your browser — nothing you type is ever sent anywhere or stored.</p>
+
+    <div class="tool-box">
+      <h2>Password Strength Checker</h2>
+      <p class="sub">Type a password (or something similar to it) to see how strong it really is.</p>
+      <input type="password" id="pwInput" placeholder="Type a password to test...">
+      <div class="meter"><div class="meter-fill" id="pwMeter"></div></div>
+      <div class="verdict" id="pwVerdict"></div>
+      <div class="tips" id="pwTips"></div>
+      <p class="privacy-note">This check happens entirely on your device using simple math — nothing is transmitted, logged, or stored.</p>
+    </div>
+
+    <div class="tool-box">
+      <h2>Your Privacy Score</h2>
+      <p class="sub">Answer these 5 quick questions honestly to see where you stand.</p>
+      <div id="quizArea"></div>
+      <button class="btn-primary" id="quizSubmit">See My Score</button>
+      <div class="score-result" id="scoreResult">
+        <div class="score-num" id="scoreNum">--</div>
+        <div id="scoreText"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Password strength checker
+const pwInput = document.getElementById('pwInput');
+const pwMeter = document.getElementById('pwMeter');
+const pwVerdict = document.getElementById('pwVerdict');
+const pwTips = document.getElementById('pwTips');
+
+pwInput.addEventListener('input', () => {
+  const val = pwInput.value;
+  let score = 0;
+  let tips = [];
+
+  if (val.length >= 16) score += 40;
+  else if (val.length >= 12) score += 25;
+  else if (val.length >= 8) score += 10;
+  else if (val.length > 0) tips.push("Aim for at least 12-16 characters — length matters more than symbols.");
+
+  if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score += 15; else if (val) tips.push("Mix uppercase and lowercase letters.");
+  if (/[0-9]/.test(val)) score += 15; else if (val) tips.push("Add at least one number.");
+  if (/[^a-zA-Z0-9]/.test(val)) score += 15; else if (val) tips.push("Add a symbol or two.");
+  if (val.length >= 20) score += 15;
+
+  const common = ['password','123456','qwerty','letmein','iloveyou','admin','welcome'];
+  if (common.some(c => val.toLowerCase().includes(c))) { score = Math.min(score, 15); tips.push("Avoid common words like 'password' or 'qwerty' — these are guessed first."); }
+
+  score = Math.min(score, 100);
+  pwMeter.style.width = score + '%';
+
+  let verdict = '', color = '';
+  if (val.length === 0) { verdict = ''; color = '#B4552F'; }
+  else if (score < 35) { verdict = 'Weak — easy to crack'; color = '#B4552F'; }
+  else if (score < 65) { verdict = 'Okay — could be stronger'; color = '#C89B3C'; }
+  else if (score < 85) { verdict = 'Strong'; color = '#5C9C6C'; }
+  else { verdict = 'Very strong'; color = '#5C9C6C'; }
+
+  pwMeter.style.background = color;
+  pwVerdict.textContent = verdict;
+  pwVerdict.style.color = color;
+  pwTips.textContent = tips.slice(0,2).join(' ');
+});
+
+// Privacy score quiz
+const questions = [
+  {q: "Do you use a different password for every important account?", opts: ["Yes","Some","No"], scores: [20,10,0]},
+  {q: "Is two-factor authentication turned on for your email?", opts: ["Yes","Not sure","No"], scores: [20,5,0]},
+  {q: "Have you checked your social media privacy settings in the last year?", opts: ["Yes","Not recently","Never"], scores: [20,10,0]},
+  {q: "Do you know how to spot a phishing email?", opts: ["Confident","Somewhat","Not really"], scores: [20,10,0]},
+  {q: "Do you know if your email has ever appeared in a data breach?", opts: ["Yes, checked","Not sure","Never checked"], scores: [20,10,0]}
+];
+let answers = new Array(questions.length).fill(null);
+
+const quizArea = document.getElementById('quizArea');
+questions.forEach((item, qi) => {
+  const div = document.createElement('div');
+  div.className = 'quiz-q';
+  const p = document.createElement('p');
+  p.textContent = item.q;
+  div.appendChild(p);
+  const optWrap = document.createElement('div');
+  optWrap.className = 'quiz-options';
+  item.opts.forEach((opt, oi) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiz-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => {
+      answers[qi] = item.scores[oi];
+      [...optWrap.children].forEach(c => c.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    optWrap.appendChild(btn);
+  });
+  div.appendChild(optWrap);
+  quizArea.appendChild(div);
+});
+
+document.getElementById('quizSubmit').addEventListener('click', () => {
+  if (answers.includes(null)) { alert('Please answer all 5 questions first.'); return; }
+  const total = answers.reduce((a,b) => a+b, 0);
+  const result = document.getElementById('scoreResult');
+  const scoreNum = document.getElementById('scoreNum');
+  const scoreText = document.getElementById('scoreText');
+  scoreNum.textContent = total + ' / 100';
+  let msg = '';
+  if (total >= 80) msg = "Solid. You're doing most of the basics right — keep it up.";
+  else if (total >= 50) msg = "Decent start, but a few gaps. Check out our guides on 2FA and phishing to close them.";
+  else msg = "There's real room to improve. Start with the Password and 2FA guides — they take minutes and matter most.";
+  scoreText.textContent = msg;
+  result.classList.add('show');
+});
+</script>
+</body>
+</html>
